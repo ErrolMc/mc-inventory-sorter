@@ -5,11 +5,17 @@ A client-side Fabric mod for Minecraft 26.3 that puts small sort buttons in the 
 | Button | What it does |
 |---|---|
 | Sort | Merges partial stacks and sorts the panel |
-| Sort in Columns | Same, but each item type starts a new column |
+| Sort in Columns | Same, but fills top to bottom and each item type starts a new column |
 | Sort in Rows | Same, but each item type starts a new row |
 | Move All | On the container: everything into your inventory. On your inventory: everything into the container |
 
+When there are more item types than columns or rows, a type only starts a new one where there's spare room. Columns still fill top to bottom, but in a completely full chest Sort in Rows can only come out the same as Sort.
+
 Right-click any sort button to cycle the sort mode. Hover a button to see the current mode.
+
+Press **R** in any inventory to sort the panel under the mouse. What R does (Sort, Sort in Columns, Sort in Rows or Move All) and which panel it acts on are options; the key itself is under Options → Controls → Key Binds → Inventory Sorter. Like vanilla's own inventory keys, it does nothing while you're typing in a text box.
+
+REI's "show recipe" key is also R by default. REI gets key presses first, so with both on R, pressing R over an item may open REI's recipe page instead of sorting. Rebind one of the two if that gets in the way.
 
 Sorting uses ordinary inventory clicks, so it works on vanilla and Paper servers without anything installed server-side. Bundles are never clicked onto other items, so they don't swallow anything while sorting.
 
@@ -18,6 +24,8 @@ Sorting uses ordinary inventory clicks, so it works on vanilla and Paper servers
 Open them with **Mod Menu → Inventory Sorter → Configure** (needs Cloth Config), or edit `config/inventory-sorter.json`.
 
 - **Sort by**: Item Type (keeps similar items together), Name, Item ID, Count (biggest piles first), Mod
+- **Sort key does**: Sort, Sort in Columns, Sort in Rows or Move All
+- **Sort key acts on**: the panel under the mouse, always the container, or always your inventory
 - **Reverse order**: for example Name Z to A
 - **Include hotbar**: lets sorting and Move All on your inventory touch the hotbar (off by default)
 - **Clicks per tick**: Instant by default. Lower it if a server's anti-cheat complains about fast clicking
@@ -44,7 +52,7 @@ Gradle tasks, from VS Code's task menu or a terminal:
 ```
 .\gradlew.bat build               # compile, unit tests, jar in build\libs
 .\gradlew.bat runClient           # dev client without the debugger
-.\gradlew.bat runClientGameTest   # in-game test: opens containers, clicks the buttons, checks the results
+.\gradlew.bat runClientGameTest   # in-game test (muted): opens containers, clicks the buttons, presses R, checks the results
 .\gradlew.bat genSources          # decompiled Minecraft sources for the editor
 ```
 

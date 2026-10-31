@@ -1,5 +1,6 @@
 package com.errolmc.inventorysorter.client.config;
 
+import com.errolmc.inventorysorter.client.input.SortKey;
 import java.util.Arrays;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
@@ -46,6 +47,21 @@ final class ConfigScreen {
 				: Component.literal(String.valueOf(value)))
 			.setTooltip(tooltip("clicks_per_tick"))
 			.setSaveConsumer(value -> config.clicksPerTick = value)
+			.build());
+
+		ConfigCategory hotkey = builder.getOrCreateCategory(Component.translatable("inventory-sorter.config.category.hotkey"));
+		hotkey.addEntry(entries.startTextDescription(Component.translatable("inventory-sorter.config.hotkey_info", SortKey.boundKeyName())).build());
+		hotkey.addEntry(entries.startEnumSelector(text("hotkey_action"), HotkeyAction.class, config.hotkeyAction)
+			.setDefaultValue(defaults.hotkeyAction)
+			.setEnumNameProvider(action -> ((HotkeyAction) action).displayName())
+			.setTooltip(tooltip("hotkey_action"))
+			.setSaveConsumer(value -> config.hotkeyAction = value)
+			.build());
+		hotkey.addEntry(entries.startEnumSelector(text("hotkey_target"), HotkeyTarget.class, config.hotkeyTarget)
+			.setDefaultValue(defaults.hotkeyTarget)
+			.setEnumNameProvider(target -> ((HotkeyTarget) target).displayName())
+			.setTooltip(tooltip("hotkey_target"))
+			.setSaveConsumer(value -> config.hotkeyTarget = value)
 			.build());
 
 		ConfigCategory buttons = builder.getOrCreateCategory(Component.translatable("inventory-sorter.config.category.buttons"));

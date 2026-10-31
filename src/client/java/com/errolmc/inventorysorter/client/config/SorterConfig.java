@@ -35,6 +35,10 @@ public final class SorterConfig {
 	/** Sorting and move-all also take the hotbar. */
 	public boolean includeHotbar = false;
 
+	/** What the sort key (R by default, rebindable in Controls) does, and to which panel. */
+	public HotkeyAction hotkeyAction = HotkeyAction.SORT;
+	public HotkeyTarget hotkeyTarget = HotkeyTarget.UNDER_MOUSE;
+
 	/** 0 sends every click at once; otherwise at most this many clicks per tick, for servers that limit clicks. */
 	public int clicksPerTick = 0;
 
@@ -75,6 +79,12 @@ public final class SorterConfig {
 	private SorterConfig sanitized() {
 		if (sortMode == null) {
 			sortMode = SortMode.ITEM_TYPE;
+		}
+		if (hotkeyAction == null) {
+			hotkeyAction = HotkeyAction.SORT;
+		}
+		if (hotkeyTarget == null) {
+			hotkeyTarget = HotkeyTarget.UNDER_MOUSE;
 		}
 		clicksPerTick = Math.max(0, clicksPerTick);
 		return this;

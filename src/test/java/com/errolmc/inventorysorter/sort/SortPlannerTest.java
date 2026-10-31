@@ -92,6 +92,52 @@ class SortPlannerTest {
 	}
 
 	@Test
+	void columnsStillRunTopToBottomInAFullContainer() {
+		// 3x3, completely full, four types: no room for every type to get a column, so they run on down the columns.
+		int[] max = {64, 64, 64, 64};
+		Cell[] cells = {
+			new Cell(3, 64), new Cell(1, 64), new Cell(0, 64),
+			new Cell(2, 64), new Cell(3, 64), new Cell(1, 64),
+			new Cell(3, 64), new Cell(0, 64), new Cell(2, 64),
+		};
+
+		SortPlanner.Result result = SortPlanner.plan(cells, 3, 3, max, new boolean[4], null, Layout.COLUMNS);
+		Cell[] after = replay(cells, result.clicks(), max, new boolean[4]);
+
+		// Columns: 0 0 1 | 1 2 2 | 3 3 3, shown here row by row.
+		assertArrayEquals(new Cell[] {
+			new Cell(0, 64), new Cell(1, 64), new Cell(3, 64),
+			new Cell(0, 64), new Cell(2, 64), new Cell(3, 64),
+			new Cell(1, 64), new Cell(2, 64), new Cell(3, 64),
+		}, after);
+	}
+
+	@Test
+	void rowsUseSpareRoomToAvoidWrapping() {
+		// 4x3 with two spare slots: type 1 moves to its own row, type 2 has to wrap because there is no room left.
+		int[] max = {64, 64, 64, 64};
+		Cell[] cells = empty(12);
+		int[] types = {2, 0, 3, 2, 1, 0, 2, 1, 0, 2};
+		for (int i = 0; i < types.length; i++) {
+			cells[i] = new Cell(types[i], 64);
+		}
+
+		SortPlanner.Result result = SortPlanner.plan(cells, 4, 3, max, new boolean[4], null, Layout.ROWS);
+		Cell[] after = replay(cells, result.clicks(), max, new boolean[4]);
+
+		Cell e = Cell.EMPTY;
+		Cell a = new Cell(0, 64);
+		Cell b = new Cell(1, 64);
+		Cell c = new Cell(2, 64);
+		Cell d = new Cell(3, 64);
+		assertArrayEquals(new Cell[] {
+			a, a, a, e,
+			b, b, c, c,
+			c, c, d, e,
+		}, after);
+	}
+
+	@Test
 	void specialStacksAreNeverSwappedOnTheCursor() {
 		// Type 1 is a bundle: the planner itself throws if a click would put something onto it.
 		int[] max = {64, 1, 64};
@@ -192,6 +238,7 @@ class SortPlannerTest {
 						assertEquals(cells[i], after[i]);
 					}
 				}
+				assertInOrder(after, width, height, special, locked, layout);
 			}
 		}
 	}
@@ -203,6 +250,24 @@ class SortPlannerTest {
 		Cell[] after = replay(cells, result.clicks(), max, special);
 		assertArrayEquals(result.target(), after);
 		return after;
+	}
+
+	/**
+	 * Read in the layout's direction (down the columns for {@link Layout#COLUMNS}, along the rows otherwise), the types
+	 * never go backwards. Locked slots and special stacks are skipped, since special stacks can be pinned in place.
+	 */
+	private static void assertInOrder(Cell[] after, int width, int height, boolean[] special, boolean[] locked, Layout layout) {
+		int last = -1;
+		for (int n = 0; n < after.length; n++) {
+			int pos = layout == Layout.COLUMNS ? (n % height) * width + n / height : n;
+			Cell cell = after[pos];
+			if (locked[pos] || cell.isEmpty() || special[cell.type()]) {
+				continue;
+			}
+			int type = cell.type();
+			assertTrue(type >= last, () -> layout + " out of order at " + pos + ": " + Arrays.toString(after));
+			last = type;
+		}
 	}
 
 	private static Cell[] empty(int n) {

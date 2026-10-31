@@ -1,9 +1,13 @@
 package com.errolmc.inventorysorter.gametest;
 
+import com.errolmc.inventorysorter.client.config.HotkeyAction;
+import com.errolmc.inventorysorter.client.config.HotkeyTarget;
 import com.errolmc.inventorysorter.client.config.ModMenuIntegration;
 import com.errolmc.inventorysorter.client.config.SortMode;
 import com.errolmc.inventorysorter.client.config.SorterConfig;
 import com.errolmc.inventorysorter.client.gui.SortButton;
+import com.errolmc.inventorysorter.client.input.SortKey;
+import com.errolmc.inventorysorter.client.mixin.AbstractContainerScreenAccessor;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.Window;
 import java.util.ArrayList;
@@ -19,6 +23,7 @@ import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.screens.inventory.ShulkerBoxScreen;
@@ -29,6 +34,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Inventory;
@@ -46,6 +52,7 @@ public class InventorySorterClientGameTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		context.runOnClient(MuteAudio::mute);
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
 			world.getConnection().waitForChunksRender();
 			world.getServer().runCommand("gamemode survival @a");
@@ -57,6 +64,7 @@ public class InventorySorterClientGameTest implements FabricClientGameTest {
 			shulkerBox(context, world, base.offset(3, 0, 0));
 			enderChest(context, world);
 			playerInventory(context, world);
+			sortKey(context, world, base.offset(0, 0, 6));
 		}
 	}
 
@@ -230,6 +238,47 @@ public class InventorySorterClientGameTest implements FabricClientGameTest {
 		context.setScreen(() -> null);
 	}
 
+	private void sortKey(ClientGameTestContext context, TestSingleplayerContext world, BlockPos pos) {
+		check(context.computeOnClient(minecraft -> minecraft.options.getSoundSourceOptionInstance(SoundSource.MASTER).get()) == 0.0,
+			"test client is not muted");
+		world.getServer().runCommand("clear @a");
+		world.getServer().runCommand("item replace entity @a inventory.2 with minecraft:clay_ball 9");
+		world.getServer().runCommand("item replace entity @a inventory.20 with minecraft:clay_ball 9");
+		world.getServer().runCommand("item replace entity @a inventory.11 with minecraft:flint 4");
+		setBlock(world, pos, "minecraft:chest");
+		fill(world, pos, Map.of(6, "minecraft:dirt 3", 13, "minecraft:stone 8", 21, "minecraft:dirt 61"));
+		open(context, world, server -> level(server).getBlockState(pos).getMenuProvider(level(server), pos), ContainerScreen.class);
+		List<ItemStack> chestBefore = containerItems(world);
+		List<ItemStack> playerBefore = playerMain(world);
+
+		// Default: sort whatever panel the mouse is over.
+		hoverSlot(context, 20, false);
+		pressSortKey(context, world);
+		checkSameItems(chestBefore, containerItems(world), "sort key on the chest");
+		checkPlainSorted(containerItems(world), "sort key on the chest");
+		List<ItemStack> playerNow = playerMain(world);
+		for (int i = 0; i < playerNow.size(); i++) {
+			check(ItemStack.matches(playerNow.get(i), playerBefore.get(i)), "sort key on the chest changed inventory slot " + i);
+		}
+
+		hoverSlot(context, 5, true);
+		pressSortKey(context, world);
+		checkSameItems(playerBefore, playerMain(world), "sort key on the inventory");
+		checkPlainSorted(playerMain(world), "sort key on the inventory");
+
+		// Configured to Move All on the container, from anywhere.
+		SorterConfig config = SorterConfig.get();
+		config.hotkeyAction = HotkeyAction.MOVE_ALL;
+		config.hotkeyTarget = HotkeyTarget.CONTAINER;
+		hoverSlot(context, 5, true);
+		pressSortKey(context, world);
+		check(containerItems(world).stream().allMatch(ItemStack::isEmpty), "Move All on the sort key left items in the chest");
+		config.hotkeyAction = HotkeyAction.SORT;
+		config.hotkeyTarget = HotkeyTarget.UNDER_MOUSE;
+		SorterConfig.save();
+		close(context, world);
+	}
+
 	// ------------------------------------------------------------------ checks
 
 	private static void checkSameItems(List<ItemStack> before, List<ItemStack> after, String what) {
@@ -396,6 +445,32 @@ public class InventorySorterClientGameTest implements FabricClientGameTest {
 		});
 		context.getInput().setCursorPos((button.x() + SortButton.SIZE / 2.0) * scale[0], (button.y() + SortButton.SIZE / 2.0) * scale[1]);
 		context.waitTicks(3);
+	}
+
+	/** Moves the mouse over a slot: the n-th container slot, or the n-th of the 27 main inventory slots. */
+	private static void hoverSlot(ClientGameTestContext context, int n, boolean playerInventory) {
+		double[] target = context.computeOnClient(minecraft -> {
+			AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) minecraft.gui.screen();
+			AbstractContainerScreenAccessor panel = (AbstractContainerScreenAccessor) screen;
+			Slot slot = screen.getMenu().slots.stream()
+				.filter(s -> playerInventory ? s.container instanceof Inventory && s.getContainerSlot() == 9 + n
+					: !(s.container instanceof Inventory) && s.getContainerSlot() == n)
+				.findFirst()
+				.orElseThrow();
+			Window window = minecraft.getWindow();
+			double sx = (double) window.getScreenWidth() / window.getGuiScaledWidth();
+			double sy = (double) window.getScreenHeight() / window.getGuiScaledHeight();
+			return new double[] {(panel.inventorySorter$leftPos() + slot.x + 8) * sx, (panel.inventorySorter$topPos() + slot.y + 8) * sy};
+		});
+		context.getInput().setCursorPos(target[0], target[1]);
+		context.waitTicks(3);
+	}
+
+	private static void pressSortKey(ClientGameTestContext context, TestSingleplayerContext world) {
+		context.getInput().pressKey(SortKey.KEY);
+		context.waitTicks(2);
+		world.getConnection().waitForServerboundPackets();
+		context.waitTicks(2);
 	}
 
 	private static void click(ClientGameTestContext context, TestSingleplayerContext world, ButtonInfo button) {

@@ -138,6 +138,8 @@ public final class SortPlanner {
 			groups.add(group);
 		}
 
+		// Rows and columns try giving every type its own line first, then fall back to a looser grouping that still
+		// runs in their direction (a column sort fills top to bottom even when the container is full).
 		Cell[] target = null;
 		if (layout != Layout.PLAIN) {
 			boolean byRows = layout == Layout.ROWS;
@@ -158,7 +160,10 @@ public final class SortPlanner {
 	private enum Grouping {
 		/** Every type starts a new line. */
 		STRICT,
-		/** A type starts a new line only if it does not fit in what is left of the current line. */
+		/**
+		 * A type starts a new line only if it would otherwise wrap onto the next one, and only while everything after it
+		 * still fits. This never runs out of room, so a full container still gets the layout's direction.
+		 */
 		RELAXED,
 		NONE
 	}
@@ -173,12 +178,18 @@ public final class SortPlanner {
 			target[i] = locked[i] ? cells[i] : Cell.EMPTY;
 		}
 
+		int remaining = 0;
+		for (List<Cell> group : groups) {
+			remaining += group.size();
+		}
 		int line = 0;
 		int offset = 0;
 		boolean lineUsed = false;
 		for (List<Cell> group : groups) {
 			if (lineUsed && grouping != Grouping.NONE) {
-				boolean newLine = grouping == Grouping.STRICT || freeFrom(byRows, line, offset, lineLength) < group.size();
+				boolean newLine = grouping == Grouping.STRICT
+						|| freeFrom(byRows, line, offset, lineLength) < group.size()
+								&& freeFromLine(byRows, line + 1, lines, lineLength) >= remaining;
 				if (newLine) {
 					line++;
 					offset = 0;
@@ -203,9 +214,19 @@ public final class SortPlanner {
 				}
 				target[pos] = stack;
 				lineUsed = true;
+				remaining--;
 			}
 		}
 		return target;
+	}
+
+	/** Unlocked slots from the start of {@code line} to the end of the grid. */
+	private int freeFromLine(boolean byRows, int line, int lines, int lineLength) {
+		int free = 0;
+		for (int l = line; l < lines; l++) {
+			free += freeFrom(byRows, l, 0, lineLength);
+		}
+		return free;
 	}
 
 	private int freeFrom(boolean byRows, int line, int offset, int lineLength) {

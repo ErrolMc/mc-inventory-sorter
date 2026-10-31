@@ -5,6 +5,9 @@
 	"name": "Inventory Sorter game tests",
 	"environment": "client",
 	"entrypoints": {
+		"client": [
+			"com.errolmc.inventorysorter.gametest.MuteAudio"
+		],
 		"fabric-client-gametest": [
 			"com.errolmc.inventorysorter.gametest.InventorySorterClientGameTest"
 		]
