@@ -1,0 +1,41 @@
+{
+	"schemaVersion": 1,
+	"id": "inventory-sorter",
+	"version": "${version}",
+	"name": "Inventory Sorter",
+	"description": "Sort buttons in the title row of chests, barrels, shulker boxes, ender chests and your inventory: sort, sort in columns, sort in rows and move all.",
+	"authors": [
+		"ErrolMc"
+	],
+	"contact": {
+		"sources": "https://github.com/ErrolMc/mc-inventory-sorter",
+		"issues": "https://github.com/ErrolMc/mc-inventory-sorter/issues"
+	},
+	"license": "MIT",
+	"icon": "assets/inventory-sorter/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.errolmc.inventorysorter.client.InventorySorterClient"
+		],
+		"modmenu": [
+			"com.errolmc.inventorysorter.client.config.ModMenuIntegration"
+		]
+	},
+	"mixins": [
+		{
+			"config": "inventory-sorter.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	},
+	"recommends": {
+		"modmenu": "*",
+		"cloth-config": "*"
+	}
+}

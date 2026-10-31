@@ -1,0 +1,15 @@
+{
+	"schemaVersion": 1,
+	"id": "inventory-sorter-gametest",
+	"version": "1.0.0",
+	"name": "Inventory Sorter game tests",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"com.errolmc.inventorysorter.gametest.InventorySorterClientGameTest"
+		]
+	},
+	"depends": {
+		"inventory-sorter": "*"
+	}
+}
