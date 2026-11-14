@@ -41,6 +41,8 @@ public final class SorterConfig {
 
 	/** Shift + left-drag over slots moves each one to the other inventory, as if it had been shift-clicked. */
 	public boolean shiftDrag = true;
+	/** Ticks (50 ms each) the button must be held before a shift-drag starts, so quick shift-clicks stay single. */
+	public int shiftDragDelayTicks = 5;
 
 	/** 0 sends every click at once; otherwise at most this many clicks per tick, for servers that limit clicks. */
 	public int clicksPerTick = 0;
@@ -90,6 +92,7 @@ public final class SorterConfig {
 			hotkeyTarget = HotkeyTarget.UNDER_MOUSE;
 		}
 		clicksPerTick = Math.max(0, clicksPerTick);
+		shiftDragDelayTicks = Math.clamp(shiftDragDelayTicks, 0, 20);
 		return this;
 	}
 }

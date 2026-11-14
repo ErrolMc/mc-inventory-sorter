@@ -70,6 +70,12 @@ final class ConfigScreen {
 			.setTooltip(tooltip("shift_drag"))
 			.setSaveConsumer(value -> config.shiftDrag = value)
 			.build());
+		mouse.addEntry(entries.startIntSlider(text("shift_drag_delay"), config.shiftDragDelayTicks, 0, 20)
+			.setDefaultValue(defaults.shiftDragDelayTicks)
+			.setTextGetter(value -> Component.translatable("inventory-sorter.config.shift_drag_delay.ms", value * 50))
+			.setTooltip(tooltip("shift_drag_delay"))
+			.setSaveConsumer(value -> config.shiftDragDelayTicks = value)
+			.build());
 
 		ConfigCategory buttons = builder.getOrCreateCategory(Component.translatable("inventory-sorter.config.category.buttons"));
 		buttons.addEntry(entries.startBooleanToggle(text("show_sort_button"), config.showSortButton)

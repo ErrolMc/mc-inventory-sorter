@@ -24,6 +24,9 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Vanilla shift-clicks the slot the drag starts on. The drag then only takes slots from the same inventory as that
  * slot, so items that have just arrived in the other inventory are not sent straight back.
+ *
+ * <p>Nothing moves until the button has been held for {@link SorterConfig#shiftDragDelayTicks}, so a quick shift-click
+ * where the mouse slips onto the next slot before the button comes up stays a plain shift-click.
  */
 public final class ShiftDrag {
 	/** Distance in GUI pixels between the points checked along the mouse's path; slots are 18 pixels apart. */
@@ -34,8 +37,16 @@ public final class ShiftDrag {
 	private static final Set<Slot> VISITED = Collections.newSetFromMap(new IdentityHashMap<>());
 	private static double lastX;
 	private static double lastY;
+	private static int heldTicks;
 
 	private ShiftDrag() {
+	}
+
+	/** Counts how long the button has been held; called every client tick. */
+	public static void tick(Minecraft minecraft) {
+		if (screen != null) {
+			heldTicks++;
+		}
 	}
 
 	/** Hooks the mouse events of a newly initialised screen. */
@@ -74,6 +85,7 @@ public final class ShiftDrag {
 		VISITED.add(slot);
 		lastX = event.x();
 		lastY = event.y();
+		heldTicks = 0;
 	}
 
 	private static void drag(AbstractContainerScreen<?> containerScreen, MouseButtonEvent event) {
@@ -82,7 +94,9 @@ public final class ShiftDrag {
 		}
 		Minecraft minecraft = Minecraft.getInstance();
 		Player player = minecraft.player;
-		boolean canMove = minecraft.hasShiftDown() && player != null && minecraft.gameMode != null
+		// Until the hold time is up, only follow the mouse: slots passed by then are left alone.
+		boolean canMove = heldTicks >= SorterConfig.get().shiftDragDelayTicks
+			&& minecraft.hasShiftDown() && player != null && minecraft.gameMode != null
 			&& containerScreen.getMenu().getCarried().isEmpty() && !ClickQueue.isBusy();
 		if (canMove) {
 			// Check points along the path since the last event, so a quick flick of the mouse doesn't skip slots.

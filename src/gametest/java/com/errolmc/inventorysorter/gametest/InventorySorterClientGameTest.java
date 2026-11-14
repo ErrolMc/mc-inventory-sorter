@@ -286,6 +286,7 @@ public class InventorySorterClientGameTest implements FabricClientGameTest {
 	private void shiftDrag(ClientGameTestContext context, TestSingleplayerContext world, BlockPos pos) {
 		world.getServer().runCommand("clear @a");
 		world.getServer().runCommand("item replace entity @a inventory.0 with minecraft:cobblestone 64");
+		world.getServer().runCommand("item replace entity @a inventory.1 with minecraft:gravel 7");
 		world.getServer().runCommand("item replace entity @a inventory.2 with minecraft:oak_log 10");
 		world.getServer().runCommand("item replace entity @a inventory.3 with minecraft:sand 5");
 		world.getServer().runCommand("item replace entity @a inventory.4 with minecraft:dirt 20");
@@ -294,12 +295,26 @@ public class InventorySorterClientGameTest implements FabricClientGameTest {
 		setBlock(world, pos, "minecraft:chest");
 		open(context, world, server -> level(server).getBlockState(pos).getMenuProvider(level(server), pos), ContainerScreen.class);
 
-		// Shift + press on the cobblestone (vanilla moves that one), then a single jump to the dirt four slots along,
-		// so the slots in between have to be picked up from the path. The drag then carries on up over the chest,
-		// where the items have just landed; they must stay there.
-		hoverSlot(context, 0, true);
+		int delay = SorterConfig.get().shiftDragDelayTicks;
+		check(delay > 2, "shift-drag hold time is too short to test a quick click: " + delay);
 		context.getInput().holdShift();
+
+		// A quick shift-click on the cobblestone where the mouse slips onto the gravel before the button comes up:
+		// vanilla moves the cobblestone, the gravel must stay.
+		hoverSlot(context, 0, true);
 		leftButtonWithShift(context, InputConstants.PRESS);
+		hoverSlot(context, 1, true);
+		leftButtonWithShift(context, InputConstants.RELEASE);
+		world.getConnection().waitForServerboundPackets();
+		context.waitTicks(2);
+		check(playerMain(world).get(0).isEmpty(), "quick shift-click did not move the cobblestone");
+		check(playerMain(world).get(1).is(Items.GRAVEL), "quick shift-click also moved the next stack");
+
+		// Shift + press on the gravel (vanilla moves that one) and hold, then a single jump to the dirt three slots
+		// along, so the slots in between have to be picked up from the path. The drag then carries on up over the
+		// chest, where the items have just landed; they must stay there.
+		leftButtonWithShift(context, InputConstants.PRESS);
+		context.waitTicks(delay);
 		hoverSlot(context, 4, true);
 		hoverSlot(context, 0, false);
 		leftButtonWithShift(context, InputConstants.RELEASE);
@@ -312,8 +327,8 @@ public class InventorySorterClientGameTest implements FabricClientGameTest {
 			check(inventory.get(i).isEmpty(), "shift-drag left " + inventory.get(i) + " in inventory slot " + i);
 		}
 		check(inventory.get(8).is(Items.APPLE) && inventory.get(9).is(Items.FLINT), "shift-drag moved items it never passed over");
-		List<ItemStack> expected = List.of(new ItemStack(Items.COBBLESTONE, 64), new ItemStack(Items.OAK_LOG, 10),
-			new ItemStack(Items.SAND, 5), new ItemStack(Items.DIRT, 20));
+		List<ItemStack> expected = List.of(new ItemStack(Items.COBBLESTONE, 64), new ItemStack(Items.GRAVEL, 7),
+			new ItemStack(Items.OAK_LOG, 10), new ItemStack(Items.SAND, 5), new ItemStack(Items.DIRT, 20));
 		check(totals(containerItems(world)).equals(totals(expected)), "shift-drag: chest holds " + totals(containerItems(world)));
 		close(context, world);
 	}

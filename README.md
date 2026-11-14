@@ -13,7 +13,7 @@ When there are more item types than columns or rows, a type only starts a new on
 
 Right-click any sort button to cycle the sort mode. Hover a button to see the current mode.
 
-Hold **Shift** and drag with the left mouse button to move every stack you pass over to the other inventory, as if you had shift-clicked each one. It only takes items from the side the drag started on, so items don't bounce straight back when the drag crosses into the other panel. Crafting outputs and other result slots are skipped.
+Hold **Shift** and drag with the left mouse button to move every stack you pass over to the other inventory, as if you had shift-clicked each one. Hold the button for a moment (250 ms by default) before dragging, so quick shift-clicks don't also move the stack next to them. It only takes items from the side the drag started on, so items don't bounce straight back when the drag crosses into the other panel. Crafting outputs and other result slots are skipped.
 
 Press **R** in any inventory to sort the panel under the mouse. What R does (Sort, Sort in Columns, Sort in Rows or Move All) and which panel it acts on are options; the key itself is under Options → Controls → Key Binds → Inventory Sorter. Like vanilla's own inventory keys, it does nothing while you're typing in a text box.
 
@@ -28,7 +28,7 @@ Open them with **Mod Menu → Inventory Sorter → Configure** (needs Cloth Conf
 - **Sort by**: Item Type (keeps similar items together), Name, Item ID, Count (biggest piles first), Mod
 - **Sort key does**: Sort, Sort in Columns, Sort in Rows or Move All
 - **Sort key acts on**: the panel under the mouse, always the container, or always your inventory
-- **Shift-drag to move items**: on by default
+- **Shift-drag to move items**: on by default, with how long to hold before the drag starts (0 to 1000 ms)
 - **Reverse order**: for example Name Z to A
 - **Include hotbar**: lets sorting and Move All on your inventory touch the hotbar (off by default)
 - **Clicks per tick**: Instant by default. Lower it if a server's anti-cheat complains about fast clicking

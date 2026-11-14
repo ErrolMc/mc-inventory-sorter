@@ -19,5 +19,6 @@ public class InventorySorterClient implements ClientModInitializer {
 			ShiftDrag.register(screen);
 		});
 		ClientTickEvents.END_CLIENT_TICK.register(ClickQueue::tick);
+		ClientTickEvents.END_CLIENT_TICK.register(ShiftDrag::tick);
 	}
 }
