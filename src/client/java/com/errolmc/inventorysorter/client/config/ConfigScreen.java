@@ -64,6 +64,13 @@ final class ConfigScreen {
 			.setSaveConsumer(value -> config.hotkeyTarget = value)
 			.build());
 
+		ConfigCategory mouse = builder.getOrCreateCategory(Component.translatable("inventory-sorter.config.category.mouse"));
+		mouse.addEntry(entries.startBooleanToggle(text("shift_drag"), config.shiftDrag)
+			.setDefaultValue(defaults.shiftDrag)
+			.setTooltip(tooltip("shift_drag"))
+			.setSaveConsumer(value -> config.shiftDrag = value)
+			.build());
+
 		ConfigCategory buttons = builder.getOrCreateCategory(Component.translatable("inventory-sorter.config.category.buttons"));
 		buttons.addEntry(entries.startBooleanToggle(text("show_sort_button"), config.showSortButton)
 			.setDefaultValue(defaults.showSortButton)

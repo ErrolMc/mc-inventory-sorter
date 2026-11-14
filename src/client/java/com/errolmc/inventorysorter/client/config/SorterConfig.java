@@ -39,6 +39,9 @@ public final class SorterConfig {
 	public HotkeyAction hotkeyAction = HotkeyAction.SORT;
 	public HotkeyTarget hotkeyTarget = HotkeyTarget.UNDER_MOUSE;
 
+	/** Shift + left-drag over slots moves each one to the other inventory, as if it had been shift-clicked. */
+	public boolean shiftDrag = true;
+
 	/** 0 sends every click at once; otherwise at most this many clicks per tick, for servers that limit clicks. */
 	public int clicksPerTick = 0;
 

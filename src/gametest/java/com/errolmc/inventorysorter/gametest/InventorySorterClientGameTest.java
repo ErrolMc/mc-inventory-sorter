@@ -20,6 +20,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
+import net.fabricmc.fabric.mixin.client.gametest.input.MouseHandlerAccessor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
@@ -27,6 +28,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.screens.inventory.ShulkerBoxScreen;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -41,6 +43,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /**
  * Opens real containers in a test world, clicks the buttons with the mouse and checks the server-side result.
@@ -65,6 +68,7 @@ public class InventorySorterClientGameTest implements FabricClientGameTest {
 			enderChest(context, world);
 			playerInventory(context, world);
 			sortKey(context, world, base.offset(0, 0, 6));
+			shiftDrag(context, world, base.offset(3, 0, -3));
 		}
 	}
 
@@ -279,6 +283,41 @@ public class InventorySorterClientGameTest implements FabricClientGameTest {
 		close(context, world);
 	}
 
+	private void shiftDrag(ClientGameTestContext context, TestSingleplayerContext world, BlockPos pos) {
+		world.getServer().runCommand("clear @a");
+		world.getServer().runCommand("item replace entity @a inventory.0 with minecraft:cobblestone 64");
+		world.getServer().runCommand("item replace entity @a inventory.2 with minecraft:oak_log 10");
+		world.getServer().runCommand("item replace entity @a inventory.3 with minecraft:sand 5");
+		world.getServer().runCommand("item replace entity @a inventory.4 with minecraft:dirt 20");
+		world.getServer().runCommand("item replace entity @a inventory.8 with minecraft:apple 3");
+		world.getServer().runCommand("item replace entity @a inventory.9 with minecraft:flint 4");
+		setBlock(world, pos, "minecraft:chest");
+		open(context, world, server -> level(server).getBlockState(pos).getMenuProvider(level(server), pos), ContainerScreen.class);
+
+		// Shift + press on the cobblestone (vanilla moves that one), then a single jump to the dirt four slots along,
+		// so the slots in between have to be picked up from the path. The drag then carries on up over the chest,
+		// where the items have just landed; they must stay there.
+		hoverSlot(context, 0, true);
+		context.getInput().holdShift();
+		leftButtonWithShift(context, InputConstants.PRESS);
+		hoverSlot(context, 4, true);
+		hoverSlot(context, 0, false);
+		leftButtonWithShift(context, InputConstants.RELEASE);
+		context.getInput().releaseShift();
+		world.getConnection().waitForServerboundPackets();
+		context.waitTicks(2);
+
+		List<ItemStack> inventory = playerMain(world);
+		for (int i = 0; i <= 4; i++) {
+			check(inventory.get(i).isEmpty(), "shift-drag left " + inventory.get(i) + " in inventory slot " + i);
+		}
+		check(inventory.get(8).is(Items.APPLE) && inventory.get(9).is(Items.FLINT), "shift-drag moved items it never passed over");
+		List<ItemStack> expected = List.of(new ItemStack(Items.COBBLESTONE, 64), new ItemStack(Items.OAK_LOG, 10),
+			new ItemStack(Items.SAND, 5), new ItemStack(Items.DIRT, 20));
+		check(totals(containerItems(world)).equals(totals(expected)), "shift-drag: chest holds " + totals(containerItems(world)));
+		close(context, world);
+	}
+
 	// ------------------------------------------------------------------ checks
 
 	private static void checkSameItems(List<ItemStack> before, List<ItemStack> after, String what) {
@@ -470,6 +509,16 @@ public class InventorySorterClientGameTest implements FabricClientGameTest {
 		context.getInput().pressKey(SortKey.KEY);
 		context.waitTicks(2);
 		world.getConnection().waitForServerboundPackets();
+		context.waitTicks(2);
+	}
+
+	/**
+	 * Presses or releases the left button with left Shift (modifier 1) on the event, the way a real Shift + click
+	 * arrives. TestInput sends mouse buttons without modifiers, so vanilla would not treat the press as a shift-click.
+	 */
+	private static void leftButtonWithShift(ClientGameTestContext context, int action) {
+		context.runOnClient(minecraft -> ((MouseHandlerAccessor) minecraft.mouseHandler).invokeOnButton(
+			minecraft.getWindow().handle(), new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 1), action));
 		context.waitTicks(2);
 	}
 

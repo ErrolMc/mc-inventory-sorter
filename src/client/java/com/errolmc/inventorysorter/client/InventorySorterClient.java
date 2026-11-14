@@ -2,6 +2,7 @@ package com.errolmc.inventorysorter.client;
 
 import com.errolmc.inventorysorter.client.config.SorterConfig;
 import com.errolmc.inventorysorter.client.gui.ButtonGroups;
+import com.errolmc.inventorysorter.client.input.ShiftDrag;
 import com.errolmc.inventorysorter.client.input.SortKey;
 import com.errolmc.inventorysorter.client.sort.ClickQueue;
 import net.fabricmc.api.ClientModInitializer;
@@ -13,7 +14,10 @@ public class InventorySorterClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		SorterConfig.load();
 		SortKey.register();
-		ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> ButtonGroups.addTo(screen));
+		ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {
+			ButtonGroups.addTo(screen);
+			ShiftDrag.register(screen);
+		});
 		ClientTickEvents.END_CLIENT_TICK.register(ClickQueue::tick);
 	}
 }
